@@ -27,6 +27,13 @@ CODE_DIR = Path(__file__).resolve().parent
 if str(CODE_DIR) not in sys.path:
     sys.path.insert(0, str(CODE_DIR))
 
+# Windows 控制台默认 GBK/cp1252，中文日志会 UnicodeEncodeError；统一改 UTF-8。
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:  # noqa: BLE001
+        pass
+
 from v2d import audio as v2d_audio          # noqa: E402
 from v2d import config as v2d_config        # noqa: E402
 from v2d import render as v2d_render        # noqa: E402

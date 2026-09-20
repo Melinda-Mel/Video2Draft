@@ -7,6 +7,7 @@
 """
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 
@@ -30,7 +31,9 @@ def render(md_path: str, out_png: str | None = None, timeout: int = 300) -> tupl
 
     cmd = [config.python_exe(), str(md2pic_path()), str(md), "-o", str(png)]
     try:
-        p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        env = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUTF8="1")
+        p = subprocess.run(cmd, capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", timeout=timeout, env=env)
     except Exception as e:  # noqa: BLE001
         return False, None, f"出图进程启动失败（{type(e).__name__}），MD 已保留"
     if p.returncode != 0 or not png.exists():

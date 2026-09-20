@@ -45,6 +45,11 @@ def summary(lines: list[str]) -> None:
             f.write("\n".join(lines) + "\n")
 
 
+def esc(s: str, limit: int = 1200) -> str:
+    s = s.replace("%", "%25").replace("\r", "").replace("\n", "%0A")
+    return s[:limit]
+
+
 def main() -> int:
     url = os.environ.get("YJCG_E2E_URL", DEFAULT_URL)
     model = os.environ.get("YJCG_E2E_MODEL", "tiny")
@@ -93,7 +98,8 @@ def main() -> int:
         return 0
 
     lines += ["- **判定**：✗ FAIL", "", "```", log[-1500:], "```"]
-    print("::error::真实 YouTube 端到端失败（非反爬原因），需要排查")
+    # 失败详情同时发成 annotation：公共仓库无需登录即可通过 API 读到
+    print("::error::真实 YouTube 端到端失败（非反爬原因）|| " + esc(log[-1800:]))
     summary(lines)
     return 1
 

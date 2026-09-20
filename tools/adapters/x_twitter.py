@@ -100,7 +100,7 @@ def _download_ytdlp(url: str, dst: str) -> int:
     p = subprocess.run(
         [config.python_exe(), "-m", "yt_dlp", "-f", "mp4/best", "--no-playlist",
          "--no-warnings", "-o", dst, url],
-        capture_output=True, text=True, timeout=600,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=600,
     )
     if not Path(dst).exists() or Path(dst).stat().st_size < 10000:
         raise RuntimeError(f"yt-dlp 兜底也没拿到：({(p.stdout + p.stderr)[-200:]})")

@@ -81,7 +81,8 @@ class TestConfig(unittest.TestCase):
         env = dict(os.environ, YJCG_OUTPUT_DIR=out, PYTHONPATH=str(TOOLS))
         p = subprocess.run([sys.executable, "-c",
                             "from v2d import config; print(config.OUTPUT_DIR)"],
-                           capture_output=True, text=True, env=env, timeout=60)
+                           capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", env=env, timeout=60)
         self.assertEqual(p.stdout.strip(), out, p.stderr)
 
 
@@ -112,18 +113,21 @@ class TestDegradation(unittest.TestCase):
         self.assertIn("测试标题", doc)
 
     def test_missing_ffmpeg_message_is_helpful(self):
-        env = dict(os.environ, PATH="/nonexistent-path-for-test", YJCG_FFMPEG="/nope/ffmpeg",
-                   PYTHONPATH=str(TOOLS))
-        code = ("from v2d import audio;"
-                "audio.require_ffmpeg()")
-        p = subprocess.run([sys.executable, "-c",
-                            "from v2d import audio\n"
-                            "try:\n"
-                            "    audio.require_ffmpeg()\n"
-                            "except RuntimeError as e:\n"
-                            "    print(str(e))\n"],
-                           capture_output=True, text=True, env=env, timeout=60)
-        msg = p.stdout
+        """缺 ffmpeg 时的中文提示必须能照做。
+
+        故意**不起子进程**：在 Windows 上给子进程改 PATH 会连带影响解释器启动，
+        结果时好时坏（历史上就出现过 p.stdout 为 None）。进程内打桩同样验到行为，
+        而且三平台结果一致。
+        """
+        from unittest import mock
+        from v2d import audio, config
+        with mock.patch.dict(os.environ, {"YJCG_FFMPEG": "/nope/ffmpeg"}, clear=False), \
+                mock.patch.object(config, "_FFMPEG_EXTRA", ()), \
+                mock.patch("shutil.which", return_value=None):
+            self.assertIsNone(config.find_ffmpeg())
+            with self.assertRaises(RuntimeError) as cm:
+                audio.require_ffmpeg()
+        msg = str(cm.exception)
         self.assertIn("ffmpeg", msg)
         self.assertTrue(any(k in msg for k in ("brew", "winget", "apt")), msg)
 

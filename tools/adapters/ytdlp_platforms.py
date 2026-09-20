@@ -124,7 +124,8 @@ def fetch(url: str, workdir: str, platform: str = "") -> dict:
         url,
     ]
     import subprocess
-    p = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
+    p = subprocess.run(cmd, capture_output=True, text=True,
+                      encoding="utf-8", errors="replace", timeout=900)
     out = p.stdout or ""
     if p.returncode != 0 and "V2DMETA:" not in out:
         tail = (p.stderr or out)[-500:]

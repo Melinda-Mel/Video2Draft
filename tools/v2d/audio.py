@@ -55,7 +55,8 @@ def ffmpeg_version() -> str:
     if not exe:
         return "未安装"
     try:
-        p = subprocess.run([exe, "-version"], capture_output=True, text=True, timeout=20)
+        p = subprocess.run([exe, "-version"], capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", timeout=20)
         return (p.stdout or "").splitlines()[0][:80] or "已安装"
     except Exception:  # noqa: BLE001
         return "已安装（版本读取失败）"

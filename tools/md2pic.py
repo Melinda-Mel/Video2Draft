@@ -15,6 +15,13 @@
 import os, re, sys, html, subprocess, json
 from pathlib import Path
 
+# Windows 控制台默认 GBK/cp1252，直接 print 中文会 UnicodeEncodeError；统一改 UTF-8。
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:  # noqa: BLE001
+        pass
+
 # ---- Chrome 探测（跨平台）----
 # 优先环境变量 YJCG_CHROME，其次 PATH，其次各系统常见安装位置。
 def _find_chrome():

@@ -84,12 +84,15 @@ print("@@JSON@@" + json.dumps({{"segments": segs, "cost": round(time.time() - t0
                              ensure_ascii=False))
 '''
     env = dict(os.environ)
+    env.setdefault("PYTHONIOENCODING", "utf-8")   # Windows 控制台默认 GBK，中文输出会崩
+    env.setdefault("PYTHONUTF8", "1")
     env.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
     env.setdefault("HF_HUB_DISABLE_XET", "1")
     if local_only:
         env["HF_HUB_OFFLINE"] = "1"
     p = subprocess.run([config.python_exe(), "-c", script],
-                       capture_output=True, text=True, timeout=7200, env=env)
+                       capture_output=True, text=True,
+                       encoding="utf-8", errors="replace", timeout=7200, env=env)
     m = re.search(r"@@JSON@@(\{.*\})", p.stdout or "", re.S)
     if not m:
         err = ""
@@ -118,7 +121,8 @@ def available() -> tuple[bool, str]:
          "        importlib.import_module(m); ok.append(m)\n"
          "    except Exception: pass\n"
          "print(','.join(ok))"],
-        capture_output=True, text=True, timeout=120)
+        capture_output=True, text=True,
+        encoding="utf-8", errors="replace", timeout=120)
     mods = (p.stdout or "").strip()
     if not mods:
         return False, "未安装转写依赖：pip install -r requirements.txt（需 faster-whisper）"

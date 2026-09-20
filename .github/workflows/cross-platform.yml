@@ -1,0 +1,64 @@
+name: cross-platform
+
+# macOS + Windows 双系统基础测试
+# 覆盖：语法检查、单元测试（含「不许出现个人路径」红线）、出图冒烟、无 Key 降级
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+        python: ["3.11"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: 安装依赖（shared requirements）
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 语法检查
+        shell: bash
+        run: |
+          python -m py_compile tools/*.py tools/v2d/*.py tools/adapters/*.py
+
+      - name: 单元测试（跨平台红线 + 降级路径）
+        shell: bash
+        run: python -m unittest discover -s tests -v
+
+      - name: 出图冒烟（MD → PNG；无浏览器则自动跳过）
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os, sys, tempfile
+          from pathlib import Path
+          sys.path.insert(0, "tools")
+          from v2d import config, render
+          d = Path(tempfile.mkdtemp())
+          md = d / "smoke.md"
+          md.write_text("# 冒烟测试\n\n- 一行\n- 两行\n", encoding="utf-8")
+          chrome = config.find_chrome()
+          print("chrome:", chrome)
+          ok, png, msg = render.render(str(md))
+          print("render:", ok, png, msg)
+          if not chrome:
+              print("::warning::本机/runner 无 Chrome，跳过出图断言（不影响 MD 产出路径）")
+              sys.exit(0)
+          assert ok and Path(png).exists(), "出图失败"
+          assert md.exists(), "出图失败后 MD 必须保留"
+          PY
+
+      - name: 环境自检（doctor）
+        shell: bash
+        run: python tools/video2draft.py --doctor

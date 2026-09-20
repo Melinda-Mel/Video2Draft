@@ -1,8 +1,11 @@
 __pycache__/
 *.pyc
+.venv/
+venv/
 output/
 *.mp4
-*.wav
 *.m4a
+*.wav
 tools/.sph_config.json
 .DS_Store
+Thumbs.db

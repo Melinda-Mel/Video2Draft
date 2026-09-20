@@ -1,4 +1,10 @@
-# 自制脚本清单
+# 自制工具清单
+
+> **两类工具，别混用：**
+> - **v2（跨平台，推荐）**：`tools/video2draft.py` + `tools/v2d/` + `tools/adapters/` + `tools/md2pic.py`
+>   —— 不依赖个人目录与本机服务，**macOS 已实测；Windows 已适配、端到端待实机验收**。
+> - **Legacy（macOS 本机链路，保留不替换）**：`make_card.py`、`pipeline.py`、`x_reply.py`、
+>   `xhs_reply.py`、`whisper_server.py` —— 依赖本机解析服务 / Node / wx-send，仅作既有环境稳定版保留。
 
 分两部分：**一键成稿链路**（在工作区 `tools/` 下）与**通用小工具**（在 `~/.local/bin/`）。
 

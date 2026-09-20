@@ -31,10 +31,20 @@ SYSTEM = (
 
 
 def load_config():
+    """配置来源（后者优先）：tools/.sph_config.json → 环境变量。
+
+    环境变量（跨平台通用，CI 里也方便）：
+        DEEPSEEK_API_KEY / DEEPSEEK_BASE_URL / DEEPSEEK_MODEL
+    """
     try:
-        return json.load(open(CONFIG_PATH, encoding="utf-8"))
+        cfg = json.load(open(CONFIG_PATH, encoding="utf-8"))
     except Exception:
-        return {}
+        cfg = {}
+    for env_k in ("DEEPSEEK_API_KEY", "DEEPSEEK_BASE_URL", "DEEPSEEK_MODEL"):
+        v = os.environ.get(env_k)
+        if v:
+            cfg[env_k] = v
+    return cfg
 
 
 def human_dur(sec):

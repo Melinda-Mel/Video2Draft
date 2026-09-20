@@ -1,4 +1,14 @@
-# 核心转写（本机离线，音频不出机器）
+# Video2Draft 依赖（macOS / Windows / Linux 共用）
+# 安装：pip install -r requirements.txt
+
+# 下载（抖音 / B站 / YouTube，X 的兜底）——只用仓库安装的这一份，不依赖系统版本
+yt-dlp>=2025.1.1
+
+# 本机离线转写（音频不出机器；CPU 可跑，首次运行自动下载模型）
 faster-whisper>=1.0
-# 可选：Apple Silicon 上用 mlx-whisper 快 3~5 倍（装不装都能跑）
-# mlx-whisper
+
+# 出图后裁剪底部空白（可选：没装也能出图，只是不做裁边）
+pillow>=10.0
+
+# 可选：Apple 芯片上更快（未装在 macOS 上会自动退回 CPU）
+# mlx-whisper>=0.4

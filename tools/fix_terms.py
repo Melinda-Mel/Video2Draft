@@ -33,14 +33,14 @@ TERMS = [
     {
         "name": "Jev",
         "aka": ["Jev 决策模型"],
-        "desc": "Ilenia 团队自研的决策模型（System One / TypeSafe 里的 Jev 决策引擎），"
+        "desc": "团队自研的决策模型（System One / TypeSafe 里的 Jev 决策引擎），"
                 "常出现在「用专精模型做判断、筛选、决策」的话题里",
         "variants": ["GV", "JV", "JEB", "G.V", "JE V"],
     },
     {
         "name": "WorkBuddy",
         "aka": ["WorkBuddy 桌面端"],
-        "desc": "Ilenia 在用的 AI 工作台/智能体客户端（桌面 App）",
+        "desc": "AI 工作台 / 智能体客户端（桌面 App）",
         "variants": ["WorkerBody", "WorkBody", "Workbuddy", "Worker Buddy", "WorkBuddy Desktop"],
     },
     {

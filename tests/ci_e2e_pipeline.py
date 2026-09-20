@@ -13,6 +13,7 @@ faster-whisper 推理、成稿、出图）在 macOS 与 Windows 上各跑一遍�
 """
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -40,6 +41,16 @@ def summary(lines: list[str]) -> None:
     if dst:
         with open(dst, "a", encoding="utf-8") as f:
             f.write("\n".join(lines) + "\n")
+
+
+def emit_b64(prefix: str, text: str, chunk: int = 300, maxn: int = 8, level: str = "notice") -> None:
+    """把结果以 base64 分片发成 annotation：纯 ASCII，公共仓库免登录即可从 API 读到。"""
+    import base64
+
+    b = base64.b64encode(text.encode("utf-8", "replace")).decode("ascii")
+    parts = [b[i:i + chunk] for i in range(0, len(b), chunk)][-maxn:]
+    for n, p in enumerate(parts, 1):
+        print(f"::{level}::{prefix}[{n}/{len(parts)}]{p}")
 
 
 def make_speech_wav(raw: Path) -> None:
@@ -179,6 +190,17 @@ def main() -> int:
     lines.append(f"| MD 是否保留 | {'✓' if md.exists() else '✗'} |")
     lines.append(f"| 结论 | {'✓ 通过' if (ok_all and ok_png) else ('⚠ 部分通过' if ok_all else '✗ 失败')} |")
     summary(lines)
+
+    # 证据回传：产物大小 / 浏览器 / ffmpeg / 转写后端（base64 notice，免登录可读）
+    emit_b64("PIPEPASS", json.dumps({
+        "platform": sys.platform, "python": sys.version.split()[0],
+        "ffmpeg": exe, "chrome": chrome,
+        "md": md.name, "md_bytes": md.stat().st_size if md.exists() else None,
+        "png": Path(png).name if (ok_png and png) else None,
+        "png_bytes": Path(png).stat().st_size if (ok_png and png and Path(png).exists()) else None,
+        "transcript_chars": len(text), "transcript": text[:200],
+        "model": model,
+    }, ensure_ascii=False, indent=2), level="notice")
     return 0 if ok_all else 1
 
 

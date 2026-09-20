@@ -53,12 +53,12 @@ def summary(lines: list[str]) -> None:
             f.write("\n".join(lines) + "\n")
 
 
-def emit_b64(prefix: str, text: str, chunk: int = 300, maxn: int = 8) -> None:
+def emit_b64(prefix: str, text: str, chunk: int = 300, maxn: int = 8, level: str = "error") -> None:
     """把文本以 base64 分片发成 annotation（annotation 里塞非 ASCII/控制符会被吞）。"""
     b = base64.b64encode(text.encode("utf-8", "replace")).decode("ascii")
     parts = [b[i:i + chunk] for i in range(0, len(b), chunk)][-maxn:]
     for n, p in enumerate(parts, 1):
-        print(f"::error::{prefix}[{n}/{len(parts)}]{p}")
+        print(f"::{level}::{prefix}[{n}/{len(parts)}]{p}")
 
 
 def probe() -> str:
@@ -128,6 +128,19 @@ def main() -> int:
                   f"- **PNG**：{'✓ `' + Path(png_path).name + '`（' + str(Path(png_path).stat().st_size) + ' 字节）' if png_ok else '⚠ 未生成'}",
                   "", "**结论：PASS** —— 真实 YouTube 链接跑通并产出 MD" + ("+PNG" if png_ok else "（PNG 缺失）")]
         print(f"::notice::YouTube 端到端 PASS（MD={'ok' if md_ok else 'no'} PNG={'ok' if png_ok else 'no'}）")
+        # 通过 base64 notice 把「证据」带出来（无需登录即可从 API 读）
+        emit_b64("YTPASS", json.dumps({
+            "platform": sys.platform, "python": sys.version.split()[0],
+            "url": url, "model": model, "rc": rc,
+            "title": result.get("title"), "author": result.get("author"),
+            "platform_detected": result.get("platform"),
+            "chars": result.get("chars"), "duration": result.get("duration"),
+            "md": Path(md_path).name if md_ok else None,
+            "md_bytes": Path(md_path).stat().st_size if md_ok else None,
+            "png": Path(png_path).name if png_ok else None,
+            "png_bytes": Path(png_path).stat().st_size if png_ok else None,
+            "steps": result.get("steps"), "cost_s": result.get("cost"),
+        }, ensure_ascii=False, indent=2), level="notice")
         summary(lines)
         return 0 if png_ok else 1
 

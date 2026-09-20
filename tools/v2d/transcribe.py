@@ -47,7 +47,8 @@ def _transcribe_raw(wav: str, model: str, language: str | None) -> list:
     ft = _load_fix_terms()
     hot = json.dumps(ft.hotwords_prompt(), ensure_ascii=False)
     local_only = os.environ.get("YJCG_WHISPER_LOCAL_ONLY") == "1"
-    lang = json.dumps(language)  # None → null（自动检测；写死 zh 会把英文视频转成乱码）
+    # 注意：这里是 **Python 源码字面量**，不是 JSON —— None 必须写 None，写 null 会 NameError
+    lang = "None" if language is None else repr(language)
 
     script = f'''
 import json, os, time

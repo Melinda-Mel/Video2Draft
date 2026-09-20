@@ -14,7 +14,7 @@
 |---|---|---|
 | 抖音 | ✅ 已实现 | 仓库安装的 yt-dlp |
 | B站 | ✅ 已实现 | 仓库安装的 yt-dlp |
-| YouTube | ✅ macOS 已实测通过 | 仓库安装的 yt-dlp |
+| YouTube | ✅ macOS 已实测通过 | 仓库安装的 yt-dlp（机房/VPN 出口可能触发 `Sign in to confirm you're not a bot`，用 `YJCG_COOKIES_FROM_BROWSER` 或 `YJCG_COOKIE_FILE` 带登录态） |
 | 小红书 | ✅ 已实现 | 纯 Python 解析分享页 |
 | X (Twitter) | ✅ 已实现 | 公开接口 + yt-dlp 兜底 |
 | 视频号 | ⚠️ macOS 已验证 / **Windows 未验证** | 可选第三方服务（需自行配置） |
@@ -25,9 +25,11 @@
 
 | 系统 | 状态 | 说明 |
 |---|---|---|
-| macOS | ✅ 已实测 | 开发与验收环境 |
-| Windows | ⚙️ 已适配，待实机验收 | 代码跨平台（无 POSIX 专属调用），CI 里有 Windows 任务；本项目**尚未在真实 Windows 机器上跑通端到端** |
+| macOS | ✅ 已实测 | 开发与验收环境；含真实 YouTube 链接端到端（出 MD + PNG） |
+| Windows | ⚙️ 部分已实测（CI） | **基础测试与离线全管线端到端已在 GitHub Actions 的 `windows-latest` 实测通过**（ffmpeg 抽音频 → faster-whisper 转写 → MD → PNG，用 Chrome 无头出图）；**但「真实 YouTube 链接」这一步在 CI 上被 YouTube 反爬拦截**（机房 IP，`Sign in to confirm you're not a bot`），所以**不能算 Windows 已验证**——需要在有登录态的 Windows 机器上跑一次（`YJCG_COOKIES_FROM_BROWSER=edge`） |
 | Linux | ⚙️ 理论可用 | 未实测 |
+
+CI：<https://github.com/Melinda-Mel/Video2Draft/actions/workflows/cross-platform.yml>（macOS + Windows 双系统）
 
 ## 安装
 

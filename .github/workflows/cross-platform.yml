@@ -1,15 +1,23 @@
 name: cross-platform
 
-# macOS + Windows 双系统基础测试
-# 覆盖：语法检查、单元测试（含「不许出现个人路径」红线）、出图冒烟、无 Key 降级
+# macOS + Windows 双系统测试，分两层：
+#   ① 基础测试   —— 语法、单元测试（含「不许出现个人路径」红线）、出图冒烟、doctor
+#   ② 端到端     —— (a) 真实 YouTube 链接跑 MD+PNG；(b) 离线管线（系统自带语音合成 → 转写 → MD+PNG）
+# 说明：(a) 在机房 IP 上可能被 YouTube 反爬拦截，脚本会判定为 BLOCKED 并只告警，不误报为代码失败；
+#       (b) 不依赖任何网站，用来证明 ffmpeg / 转写 / 出图全链路在该系统上真的能跑。
 on:
   push:
     branches: ["**"]
   pull_request:
   workflow_dispatch:
 
+env:
+  HF_ENDPOINT: https://huggingface.co    # CI 里用官方源（比默认镜像快）
+  PYTHONIOENCODING: utf-8
+
 jobs:
   test:
+    name: 基础测试 (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
@@ -62,3 +70,67 @@ jobs:
       - name: 环境自检（doctor）
         shell: bash
         run: python tools/video2draft.py --doctor
+
+  e2e:
+    name: 端到端 (${{ matrix.os }})
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 75
+    env:
+      YJCG_OUTPUT_DIR: ${{ github.workspace }}/_out
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 安装依赖（shared requirements）
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 准备 ffmpeg 与浏览器
+        shell: bash
+        run: |
+          set -e
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            command -v ffmpeg >/dev/null 2>&1 || brew install ffmpeg
+            if [ ! -d "/Applications/Google Chrome.app" ]; then
+              brew install --cask google-chrome || echo "::warning::Chrome 安装失败，出图会记 SKIPPED"
+            fi
+          elif [ "$RUNNER_OS" = "Windows" ]; then
+            # 没有 ffmpeg 就用 choco 装，并把它的 bin 目录加进后续步骤的 PATH
+            echo "/c/ProgramData/chocolatey/bin" >> "$GITHUB_PATH"
+            if ! command -v ffmpeg >/dev/null 2>&1; then
+              choco install ffmpeg -y --no-progress || echo "::warning::choco 安装 ffmpeg 失败"
+            fi
+            # 出图用系统自带 Edge（md2pic 会自动探测 msedge）
+          fi
+          command -v ffmpeg >/dev/null 2>&1 && ffmpeg -version | head -1 || echo "::warning::本机没有 ffmpeg"
+
+      - name: 环境自检（doctor）
+        shell: bash
+        run: python tools/video2draft.py --doctor
+
+      - name: "端到端 ①：真实 YouTube 链接（可能被反爬拦截）"
+        shell: bash
+        run: python tests/ci_e2e_youtube.py
+
+      - name: "端到端 ②：离线管线（合成语音 → 转写 → MD + PNG）"
+        if: always()
+        shell: bash
+        run: python tests/ci_e2e_pipeline.py --model tiny
+
+      - name: 上传产物（MD / PNG / JSON）
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-${{ matrix.os }}
+          path: _out
+          if-no-files-found: warn

@@ -13,6 +13,7 @@
 产出：PNG。同目录会留一份中间 HTML，方便排查。
 """
 import os, re, sys, html, subprocess, json
+from pathlib import Path
 
 # ---- Chrome 探测（跨平台）----
 # 优先环境变量 YJCG_CHROME，其次 PATH，其次各系统常见安装位置。
@@ -38,6 +39,15 @@ def _find_chrome():
         if os.path.exists(c):
             return c
     return None
+
+def _file_url(p):
+    """跨平台 file:// URL。
+
+    Windows 上直接拼 "file://" + "C:\\a\\b.html" 是无效地址
+    （浏览器要的是 file:///C:/a/b.html），必须走 Path.as_uri()。
+    """
+    return Path(p).resolve().as_uri()
+
 
 CHROME = _find_chrome()
 
@@ -402,7 +412,7 @@ def build_html(body, title, sub, width, footer, pill="", extra_css=""):
 def chrome_height(path):
     r = subprocess.run([CHROME, "--headless=new", "--disable-gpu", "--no-sandbox",
                         "--hide-scrollbars", "--window-size=800,1200",
-                        "--virtual-time-budget=1500", "--dump-dom", "file://" + path],
+                        "--virtual-time-budget=1500", "--dump-dom", _file_url(path)],
                        capture_output=True)
     m = re.search(r"H=(\d+)", r.stdout.decode("utf-8", "replace"))
     return int(m.group(1)) if m else 0
@@ -502,7 +512,7 @@ def main():
                     "--hide-scrollbars", "--force-device-scale-factor=2",
                     f"--window-size={width},{h}",
                     "--virtual-time-budget=2500",
-                    f"--screenshot={out}", "file://" + hp], capture_output=True)
+                    f"--screenshot={out}", _file_url(hp)], capture_output=True)
 
     # 裁掉底部空白（PIL 可选：没装就跳过裁剪，**不影响出图成功**）
     _trim_with_pil(out) if _has_pil() else print("  （未装 Pillow，跳过底部空白裁剪；不影响出图）")

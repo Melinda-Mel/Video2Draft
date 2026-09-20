@@ -49,6 +49,16 @@ python3 tools/make_card.py "<链接>" --platform 抖音  # 平台识别失败时
 python3 tools/pipeline.py "<视频链接>"
 ```
 
+Windows（PowerShell）对应写法——注意命令是 `python` 不是 `python3`：
+
+```powershell
+pip install -r requirements.txt
+$env:YJCG_LIB = "D:\一键成稿"          # 归档目录，按需修改
+python tools\make_card.py "<视频链接>" --no-push
+```
+
+> 默认按 macOS/Linux 写法输出到 `~/一键成稿/`；Windows 下建议显式设置 `YJCG_LIB`，避免 `~` 落到用户目录里找不到。
+
 ## 配置（环境变量）
 
 | 变量 | 默认 | 说明 |

@@ -100,6 +100,7 @@ def main() -> int:
     lines.append(f"| ffmpeg | {'✓ ' + str(exe) if exe else '✗ 未找到'} |")
     if not exe:
         print(audio.FFMPEG_HINT)
+        print("::error::管线端到端失败：找不到 ffmpeg（" + sys.platform + "）")
         lines.append("| 结论 | ✗ 失败（缺 ffmpeg） |")
         summary(lines)
         return 1
@@ -107,9 +108,21 @@ def main() -> int:
     # ② 合成语音 + 抽音频（走仓库里的 extract_audio，真的调用 ffmpeg）
     step("② 合成语音 → ffmpeg 抽 16k wav")
     raw = work / "speech_raw.wav"
-    make_speech_wav(raw)
+    try:
+        make_speech_wav(raw)
+    except Exception as e:  # noqa: BLE001
+        print("::error::语音合成失败（" + sys.platform + "）：" + f"{type(e).__name__}: {e}")
+        lines.append("| 语音合成 | ✗ |")
+        summary(lines)
+        return 1
     wav = work / "speech16k.wav"
-    audio.extract_audio(str(raw), str(wav))
+    try:
+        audio.extract_audio(str(raw), str(wav))
+    except Exception as e:  # noqa: BLE001
+        print("::error::ffmpeg 抽音频失败（" + sys.platform + "）：" + f"{type(e).__name__}: {e}")
+        lines.append("| ffmpeg 抽音频 | ✗ |")
+        summary(lines)
+        return 1
     size = wav.stat().st_size if wav.exists() else 0
     print(f"   wav: {size} 字节")
     lines.append(f"| ffmpeg 抽音频 | {'✓ ' + str(size) + ' 字节' if size else '✗'} |")
@@ -118,11 +131,20 @@ def main() -> int:
     # ③ 转写（真跑 faster-whisper）
     step(f"③ 转写（faster-whisper {model}）")
     t0 = time.time()
-    segs = transcribe.transcribe(str(wav), model=model)
+    try:
+        segs = transcribe.transcribe(str(wav), model=model)
+    except Exception as e:  # noqa: BLE001
+        print("::error::转写失败（" + sys.platform + "）：" + f"{type(e).__name__}: {e}"[:600])
+        lines.append("| 转写 | ✗ |")
+        summary(lines)
+        return 1
     text = "".join(s["text"] for s in segs).strip()
     print(f"   结果: {text[:200]!r}")
     lines.append(f"| 转写 | {'✓ ' + str(len(text)) + ' 字 / ' + str(round(time.time() - t0, 1)) + 's' if text else '✗ 空文本'} |")
-    ok_all &= bool(text)
+    if not text:
+        print("::error::转写结果为空（" + sys.platform + "）——语音合成或模型推理有问题")
+        summary(lines)
+        return 1
 
     # ④ 成稿（无 DeepSeek Key 时自动退回原始稿，这里正是无 Key 路径）
     step("④ 生成 MD")
@@ -133,6 +155,10 @@ def main() -> int:
     print(f"   md: {md}（{md.stat().st_size} 字节）")
     lines.append(f"| 生成 MD | {'✓ ' + str(md.stat().st_size) + ' 字节' if md.exists() else '✗'} |")
     ok_all &= md.exists()
+    if not md.exists():
+        print("::error::MD 未生成（" + sys.platform + "）")
+        summary(lines)
+        return 1
 
     # ⑤ 出图（失败不影响 MD；CI 里无浏览器就记 SKIPPED 并列告警）
     step("⑤ 生成 PNG")
@@ -148,6 +174,7 @@ def main() -> int:
         print(f"::warning::PNG 未生成（{msg}）——MD 仍已产出，符合“出图失败不判失败”的设计")
         if chrome:
             ok_all = False  # 有浏览器却出图失败 = 真 bug
+            print("::error::PNG 出图失败（" + sys.platform + "，浏览器=" + str(chrome) + "）：" + str(msg)[:600])
 
     lines.append(f"| MD 是否保留 | {'✓' if md.exists() else '✗'} |")
     lines.append(f"| 结论 | {'✓ 通过' if (ok_all and ok_png) else ('⚠ 部分通过' if ok_all else '✗ 失败')} |")

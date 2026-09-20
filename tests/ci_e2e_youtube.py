@@ -50,6 +50,22 @@ def esc(s: str, limit: int = 1200) -> str:
     return s[:limit]
 
 
+def emit_b64(prefix: str, text: str, chunk: int = 300, maxn: int = 8) -> None:
+    """把失败日志以 base64 分片发成 annotation。
+
+    为什么不用原文：ci 日志里混着 \\r 进度条、ANSI 控制符和非 ASCII 字符，
+    GitHub 解析 annotation 时会把这些整段吞掉（实测 message 直接变空），
+    base64 是纯 ASCII，一定能读回来：
+        python3 -c "import base64;print(base64.b64decode('...'))"
+    """
+    import base64
+
+    b = base64.b64encode(text.encode("utf-8", "replace")).decode("ascii")
+    parts = [b[i:i + chunk] for i in range(0, len(b), chunk)][-maxn:]
+    for n, p in enumerate(parts, 1):
+        print(f"::error::{prefix}[{n}/{len(parts)}]{p}")
+
+
 def main() -> int:
     url = os.environ.get("YJCG_E2E_URL", DEFAULT_URL)
     model = os.environ.get("YJCG_E2E_MODEL", "tiny")
@@ -98,8 +114,9 @@ def main() -> int:
         return 0
 
     lines += ["- **判定**：✗ FAIL", "", "```", log[-1500:], "```"]
-    # 失败详情同时发成 annotation：公共仓库无需登录即可通过 API 读到
-    print("::error::真实 YouTube 端到端失败（非反爬原因）|| " + esc(log[-1800:]))
+    # 失败详情同时发成 annotation（纯 ASCII 的 base64 分片，公共仓库免登录可读）
+    print("::error::真实 YouTube 端到端失败（非反爬原因）")
+    emit_b64("YTFAIL", log[-2500:])
     summary(lines)
     return 1
 

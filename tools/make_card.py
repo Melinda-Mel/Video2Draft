@@ -83,6 +83,30 @@ def extract(platform, url):
         size = xhs_reply.dl(note["video_urls"], mp4)
         log(f"② 下载 ✓ {size / 1048576:.1f} MB")
         info["url"] = note["url"]
+    elif platform == "B站":
+        # wxcd 适配器抓 B站 页面被风控 412（原因见 bili_reply.py 头注），单独走公开 API
+        import bili_reply
+        bi = bili_reply.grab(url)
+        info.update(title=bi["title"], author=bi["author"],
+                    duration=bi["duration"] or 0, tags=bi["tags"])
+        ext = ".flv" if ".flv" in bi["media_urls"][0] else ".m4s"
+        mp4 = os.path.join(TMP, f"bili_{bi['id']}{ext}")
+        tmp.append(mp4)
+        size = bili_reply.dl_first(bi["media_urls"], mp4)
+        log(f"② 下载 ✓ {size / 1048576:.1f} MB（公开 API，只取音轨所需媒体流）")
+        info["url"] = bi["url"]
+    elif platform == "YouTube":
+        # wxcd 适配器下高清全量（一条 shorts 64MB，机房出口 ~380KB/s 时下载 170s+），
+        # 改走 yt-dlp 只下 bestaudio（2026-09-20 实测同一条视频 220s → 62s）
+        import yt_reply
+        yt = yt_reply.grab(url)
+        info.update(title=yt["title"], author=yt["author"],
+                    duration=yt["duration"] or 0, tags=yt["tags"])
+        mp4 = os.path.join(TMP, f"card_yt_{yt['id']}.m4a")
+        tmp.append(mp4)
+        size = yt_reply.dl_audio(yt["url"], mp4)
+        log(f"② 下载 ✓ {size / 1048576:.1f} MB（yt-dlp 只取音轨）")
+        info["url"] = yt["url"]
     elif platform == "X":
         # X/Twitter 没有适配器（原因见 x_reply.py），单独走一条路
         import x_reply

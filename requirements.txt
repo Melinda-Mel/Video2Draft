@@ -1,0 +1,4 @@
+# 核心转写（本机离线，音频不出机器）
+faster-whisper>=1.0
+# 可选：Apple Silicon 上用 mlx-whisper 快 3~5 倍（装不装都能跑）
+# mlx-whisper

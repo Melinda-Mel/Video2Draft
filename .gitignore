@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+output/
+*.mp4
+*.wav
+*.m4a
+tools/.sph_config.json
+.DS_Store

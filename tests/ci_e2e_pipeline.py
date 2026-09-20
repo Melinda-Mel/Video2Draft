@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -51,6 +52,19 @@ def emit_b64(prefix: str, text: str, chunk: int = 300, maxn: int = 8, level: str
     parts = [b[i:i + chunk] for i in range(0, len(b), chunk)][-maxn:]
     for n, p in enumerate(parts, 1):
         print(f"::{level}::{prefix}[{n}/{len(parts)}]{p}")
+
+
+def mean_volume(ffmpeg_exe: str, wav: Path) -> float | None:
+    """用 ffmpeg 量平均音量：区分「TTS 出来是静音」还是「模型没识别出字」。"""
+    try:
+        p = subprocess.run([ffmpeg_exe, "-hide_banner", "-i", str(wav),
+                            "-af", "volumedetect", "-f", "null", "-"],
+                           capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", timeout=120)
+        m = re.search(r"mean_volume:\s*(-?[\d.]+) dB", p.stderr or "")
+        return float(m.group(1)) if m else None
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def make_speech_wav(raw: Path) -> None:
@@ -139,21 +153,30 @@ def main() -> int:
     lines.append(f"| ffmpeg 抽音频 | {'✓ ' + str(size) + ' 字节' if size else '✗'} |")
     ok_all &= size > 0
 
-    # ③ 转写（真跑 faster-whisper）
+    # ③ 转写（真跑 faster-whisper；短视频偶发空转写，做有限重试并查音量）
     step(f"③ 转写（faster-whisper {model}）")
     t0 = time.time()
-    try:
-        segs = transcribe.transcribe(str(wav), model=model)
-    except Exception as e:  # noqa: BLE001
-        print("::error::转写失败（" + sys.platform + "）：" + f"{type(e).__name__}: {e}"[:600])
-        lines.append("| 转写 | ✗ |")
-        summary(lines)
-        return 1
-    text = "".join(s["text"] for s in segs).strip()
-    print(f"   结果: {text[:200]!r}")
+    text, segs, tried = "", [], []
+    for mdl, lang in [(model, "en"), (model, None), ("base", "en"), ("base", None)]:
+        try:
+            segs = transcribe.transcribe(str(wav), model=mdl, language=lang)
+        except Exception as e:  # noqa: BLE001
+            tried.append(f"{mdl}/lang={lang}: {type(e).__name__}: {e}"[:200])
+            continue
+        text = "".join(s["text"] for s in segs).strip()
+        tried.append(f"{mdl}/lang={lang}: {len(text)} 字")
+        print(f"   {mdl}/lang={lang} → {text[:120]!r}")
+        if text:
+            break
+    print(f"   尝试记录: {tried}")
     lines.append(f"| 转写 | {'✓ ' + str(len(text)) + ' 字 / ' + str(round(time.time() - t0, 1)) + 's' if text else '✗ 空文本'} |")
     if not text:
-        print("::error::转写结果为空（" + sys.platform + "）——语音合成或模型推理有问题")
+        vol = mean_volume(exe, wav)
+        print(f"::error::转写结果为空（{sys.platform}）：音频 {size} 字节、平均音量 {vol} dB，4 次尝试均空")
+        emit_b64("PIPEFAIL", json.dumps({
+            "platform": sys.platform, "python": sys.version.split()[0], "model": model,
+            "wav_bytes": size, "mean_volume_db": vol, "tried": tried,
+        }, ensure_ascii=False, indent=2), level="error")
         summary(lines)
         return 1
 

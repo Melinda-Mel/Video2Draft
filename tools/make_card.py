@@ -23,6 +23,7 @@
 import datetime
 import json
 import os
+import tempfile
 import re
 import shutil
 import subprocess
@@ -35,6 +36,7 @@ import format_doc          # noqa: E402
 import pipeline            # noqa: E402
 import platforms           # noqa: E402
 
+TMP = tempfile.gettempdir()
 LIB = os.environ.get("YJCG_LIB", os.path.expanduser("~/一键成稿"))   # 归档目录，可用环境变量改
 ARCHIVE = os.path.join(LIB, "文案素材")
 INDEX = os.path.join(LIB, "INDEX.md")
@@ -76,7 +78,7 @@ def extract(platform, url):
         note = xhs_reply.grab(url)
         info.update(title=note["title"], author=note["author"],
                     duration=note["duration"] or 0, tags=note["tags"])
-        mp4 = f"/tmp/card_xhs_{note['id']}.mp4"
+        mp4 = os.path.join(TMP, f"card_xhs_{note['id']}.mp4")
         tmp.append(mp4)
         size = xhs_reply.dl(note["video_urls"], mp4)
         log(f"② 下载 ✓ {size / 1048576:.1f} MB")
@@ -87,7 +89,7 @@ def extract(platform, url):
         tw = x_reply.grab(url)
         info.update(title=tw["title"] or "X 视频", author=tw["author"],
                     duration=tw["duration"] or 0, tags=tw["tags"])
-        mp4 = f"/tmp/card_x_{tw['id']}.mp4"
+        mp4 = os.path.join(TMP, f"card_x_{tw['id']}.mp4")
         tmp.append(mp4)
         if tw["video_urls"][0].startswith("https://video.twimg.com"):
             size = x_reply.dl(tw["video_urls"], mp4)
@@ -106,7 +108,7 @@ def extract(platform, url):
         mp4 = pipeline.download(job, pipeline.OUT)
         tmp.append(mp4)
 
-    wav = f"/tmp/card_{int(time.time())}.wav"
+    wav = os.path.join(TMP, f"card_{int(time.time())}.wav")
     tmp.append(wav)
     pipeline.extract_audio(mp4, wav)
     segs = pipeline.transcribe(wav)

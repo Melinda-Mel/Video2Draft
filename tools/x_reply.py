@@ -16,6 +16,7 @@
 """
 import json
 import os
+import tempfile
 import re
 import sys
 import time
@@ -34,6 +35,8 @@ API = "https://cdn.syndication.twimg.com/tweet-result?id={id}&token=a"
 # 直链备用：万一 syndication 挂了，用 yt-dlp 兜底（本机 default 环境里有）
 YTDLP = os.environ.get("YJCG_YTDLP", "yt-dlp")
 
+
+TMP = tempfile.gettempdir()
 
 def get(url, timeout=20):
     return urllib.request.urlopen(urllib.request.Request(url, headers=HEADS), timeout=timeout)
@@ -155,13 +158,13 @@ def run(url):
     log = lambda m: print(m, flush=True)  # noqa: E731
     log(f"① X {info['url']}")
     log(f"   ✓ {info['title'][:40]} | {info['author']} | {info['duration']}s")
-    mp4 = f"/tmp/x_{info['id']}.mp4"
+    mp4 = os.path.join(TMP, f"x_{info['id']}.mp4")
     if info["video_urls"][0].startswith("https://video.twimg.com"):
         sz = dl(info["video_urls"], mp4)
     else:
         sz = dl_ytdlp(info["url"], mp4)
     log(f"② 下载 ✓ {sz / 1048576:.1f} MB")
-    wav = f"/tmp/x_{info['id']}.wav"
+    wav = os.path.join(TMP, f"x_{info['id']}.wav")
     pipeline.extract_audio(mp4, wav)
     segs = pipeline.transcribe(wav)
     text = "".join(s["text"] for s in segs).strip()

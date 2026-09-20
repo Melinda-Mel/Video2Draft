@@ -13,6 +13,7 @@
 """
 import json
 import os
+import tempfile
 import re
 import sys
 import time
@@ -28,6 +29,8 @@ UA = ("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.
 HEADS = {"User-Agent": UA, "Accept": "text/html,application/xhtml+xml,*/*",
          "Accept-Language": "zh-CN,zh;q=0.9"}
 
+
+TMP = tempfile.gettempdir()
 
 def get(url, timeout=20):
     return urllib.request.urlopen(urllib.request.Request(url, headers=HEADS), timeout=timeout)
@@ -133,10 +136,10 @@ def run(url):
     log = lambda m: print(m, flush=True)  # noqa: E731
     log(f"① 展开 {info['url'].split('?')[0]}")
     log(f"   ✓ {info['title'][:40]} | {info['author']} | {info['duration']}s")
-    mp4 = f"/tmp/xhs_{info['id']}.mp4"
+    mp4 = os.path.join(TMP, f"xhs_{info['id']}.mp4")
     sz = dl(info["video_urls"], mp4)
     log(f"② 下载 ✓ {sz / 1048576:.1f} MB")
-    wav = f"/tmp/xhs_{info['id']}.wav"
+    wav = os.path.join(TMP, f"xhs_{info['id']}.wav")
     pipeline.extract_audio(mp4, wav)
     segs = pipeline.transcribe(wav)
     text = "".join(s["text"] for s in segs).strip()

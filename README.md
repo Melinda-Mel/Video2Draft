@@ -19,6 +19,20 @@
 | YouTube | ✅ | yt-dlp |
 | X (Twitter) | ✅ | yt-dlp |
 
+## 运行环境
+
+| 系统 | 状态 | 说明 |
+|---|---|---|
+| macOS | ✅ 已实测 | 开发环境，含可选加速（mlx-whisper，Apple 芯片快 3~5 倍） |
+| Windows | ✅ 已适配 | 代码跨平台，装好 Python + ffmpeg + yt-dlp 即可；`md2pic` 出图需 Chrome |
+| Linux | ✅ 理论可用 | 同 Windows 路径，未实测 |
+
+Windows 注意事项：
+- 环境变量用 `set YJCG_LIB=D:\draft`（cmd）或 `$env:YJCG_LIB="D:\draft"`（PowerShell）设置
+- ffmpeg / yt-dlp 下载后把所在目录加进系统 PATH
+- 微信推送（`wx-send`）是 macOS 本地组件，Windows 上自动跳过，用 `--no-push` 参数即可
+- 视频号下载需要微信 PC 版在线 + 自建下载服务（见「能力边界」）
+
 ## 快速开始
 
 ```bash

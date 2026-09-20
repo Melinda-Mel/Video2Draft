@@ -29,6 +29,7 @@
 """
 import json
 import os
+import tempfile
 import sys
 import threading
 import time
@@ -46,7 +47,7 @@ PORT = int(os.environ.get("SPH_WHISPERD_PORT", "2024"))
 MLX_REPO = os.environ.get("SPH_WHISPERD_REPO", "mlx-community/whisper-large-v3-turbo")
 CPU_MODEL = os.environ.get("SPH_WHISPER_MODEL", "small")
 PROMPT = "以下是普通话视频口播内容。"
-SILENCE = "/tmp/.whisperd_silence.wav"
+SILENCE = os.path.join(TMP, ".whisperd_silence.wav")
 
 _lock = threading.Lock()          # 一次只跑一条，避免抢 GPU / 内存
 _state = {"ready": False, "backend": None, "model": None,
@@ -54,6 +55,8 @@ _state = {"ready": False, "backend": None, "model": None,
 _mlx = None
 _fw = None
 
+
+TMP = tempfile.gettempdir()
 
 def log(msg):
     print(f"[{time.strftime('%H:%M:%S')}] {msg}", flush=True)

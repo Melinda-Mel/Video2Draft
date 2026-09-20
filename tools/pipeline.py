@@ -25,6 +25,7 @@
 """
 import json
 import os
+import tempfile
 import re
 import subprocess
 import sys
@@ -288,7 +289,8 @@ WHISPERD_TIMEOUT = int(os.environ.get("SPH_WHISPERD_TIMEOUT", "1800"))
 WHISPERD_PROBE = 1.5
 SPH_PY = os.environ.get("YJCG_PYTHON", sys.executable)
 WHISPER_SERVER = f"{TOOLS}/whisper_server.py"
-WHISPERD_LOCK = "/tmp/.whisperd.boot.lock"
+TMP = tempfile.gettempdir()          # 跨平台临时目录（Windows 下是 %TEMP%）
+WHISPERD_LOCK = os.path.join(TMP, ".whisperd.boot.lock")
 
 
 def _hot_health():
@@ -319,7 +321,7 @@ def ensure_whisperd():
     try:
         with open(WHISPERD_LOCK, "w") as f:
             f.write(str(time.time()))
-        with open("/tmp/whisperd.spawn.log", "ab") as lf:
+        with open(os.path.join(TMP, "whisperd.spawn.log"), "ab") as lf:
             subprocess.Popen([SPH_PY, WHISPER_SERVER], cwd=TOOLS,
                              stdin=subprocess.DEVNULL, stdout=lf, stderr=lf,
                              start_new_session=True)
@@ -461,7 +463,7 @@ def main():
     tags = next((p for p in _parts[1:] if p.startswith("#")), "")
 
     video = download(job, OUT)
-    wav = f"/tmp/{safe_name(title, 30)}.wav"
+    wav = os.path.join(TMP, f"{safe_name(title, 30)}.wav")
     extract_audio(video, wav)
     segs = transcribe(wav)
 

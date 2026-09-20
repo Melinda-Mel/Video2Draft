@@ -9,3 +9,10 @@ output/
 tools/.sph_config.json
 .DS_Store
 Thumbs.db
+
+# 隐私红线：cookies / 账号凭据一律不进仓库（Windows 真机验收见 docs/12）
+cookies.txt
+*.cookies.txt
+cookies*.json
+*sph_config*.json
+.env

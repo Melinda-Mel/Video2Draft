@@ -31,6 +31,9 @@
 
 CI：<https://github.com/Melinda-Mel/Video2Draft/actions/workflows/cross-platform.yml>（macOS + Windows 双系统）
 
+> Windows 真机怎么把这最后一步跑出来并留证：见 [docs/12-Windows真机验收.md](docs/12-Windows真机验收.md)
+> —— 可复制运行的 PowerShell 步骤、每步预期结果、产物路径与通过标准。
+
 ## 安装
 
 ```bash
@@ -120,7 +123,7 @@ CI（`.github/workflows/cross-platform.yml`）在 `macos-latest` 与 `windows-la
 
 ## 文档
 
-全套设计文档在 [`docs/`](docs/)：总览与平台矩阵、卡点与解决、术语库、可移植性拆分、需求全集等 13 份。
+全套设计文档在 [`docs/`](docs/)（共 15 份文件，编号 00–12）：总览与平台矩阵、卡点与解决、术语库、可移植性拆分、需求全集、Windows 真机验收步骤等。
 
 ## License
 
